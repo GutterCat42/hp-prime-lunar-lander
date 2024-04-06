@@ -1,0 +1,43 @@
+// lunar lander game but ported to use the vector engine
+CONST KEY_UP = 2, KEY_DOWN = 12, KEY_LEFT = 7, KEY_RIGHT = 8, KEY_ESC = 4;
+CONST SCREEN_WIDTH = 320, SCREEN_HEIGHT = 240;
+CONST FOREGROUND_COLOUR = RGB(0, 255, 0), BACKGROUND_COLOUR = RGB(0, 0, 0);
+CONST REFRESH_RATE = 30;
+
+LOCAL lander_pos = {0, 0};
+LOCAL lander_speed = {0, 0};
+LOCAL lander_angle = 0;
+LOCAL lander_spin_rate = 0;
+LOCAL gravity = 5;
+LOCAL spin_damp_rate = 0.97;
+LOCAL horizontal_damp = 0.98;
+LOCAL thrust = 15;
+LOCAL torque = 10;
+LOCAL lander_size = {20, 8, 5};
+LOCAL fuel = 100, depletion_rate = 20;
+LOCAL zoom = 1, pan = {0, 0};
+
+EXPORT terrain = {};
+
+EXPORT GENERATE_TERRAIN()
+BEGIN
+ LOCAL N = 200, x_var = 30, y_var = 30;
+ LOCAL prev_point = {0, 0}, new_point;
+ //ARRAY_APPEND(terrain, prev_point);
+ terrain := CONCAT(terrain, {prev_point});
+ FOR X FROM 1 TO N-1 DO
+  new_point := {rand(1, 1, x_var), rand(1, -y_var/2, y_var/2)};
+  //ARRAY_APPEND(terrain, VECTOR_SUM(prev_point, new_point));
+  terrain := CONCAT(terrain, {VECTOR_SUM(prev_point, new_point)});
+  prev_point := new_point;
+ END;
+ RETURN terrain;
+END;
+
+EXPORT ENGINE_LANDER()
+BEGIN
+
+PRINT();
+PRINT(GENERATE_TERRAIN());
+
+END;

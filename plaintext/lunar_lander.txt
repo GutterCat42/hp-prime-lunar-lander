@@ -1,0 +1,90 @@
+EXPORT lunar_lander()
+BEGIN
+
+LOCAL UP=2, DOWN=12, LEFT=7, RIGHT=8, ESC=4;
+LOCAL width = GROBW_P(G0), height = GROBW_P(G0);
+LOCAL lander_pos = {0, 0};
+LOCAL lander_speed = {0, 0};
+LOCAL lander_angle = 0;
+LOCAL lander_spin_rate = 0;
+LOCAL colour = RGB(0, 255, 0);
+LOCAL gravity = 5;
+LOCAL spin_damp_rate = 0.97;
+LOCAL horizontal_damp = 0.98;
+LOCAL thrust = 15;
+LOCAL torque = 10;
+LOCAL lander_size = {20, 8, 5};
+LOCAL fuel = 100, depletion_rate = 20;
+LOCAL refresh_rate = 30;
+LOCAL zoom = 1, pan = {0, 0};
+
+LOCAL terrain = {}, N = 200, x_var = 30, y_var = 30;
+FOR X FROM 0 TO N DO
+ terrain[0] := {ROUND(rand*x_var, 0),ROUND(rand*y_var-y_var/2, 0)};
+END;
+
+WHILE true DO
+ pan := {−lander_pos[1]/zoom+width/2/zoom, −lander_pos[2]/zoom+height/3/zoom};
+ lander_speed[1] := lander_speed[1] * horizontal_damp;
+ lander_speed[2] := lander_speed[2] + gravity/refresh_rate;
+ lander_spin_rate := lander_spin_rate * spin_damp_rate;
+
+ IF ISKEYDOWN(UP) and fuel > 0 THEN
+  lander_speed[1] := lander_speed[1] - thrust*COS(90-lander_angle)/refresh_rate;
+  lander_speed[2] := lander_speed[2] - thrust*SIN(90-lander_angle)/refresh_rate;
+  fuel := fuel - depletion_rate / refresh_rate;
+ END;
+ IF ISKEYDOWN(LEFT) THEN
+  lander_spin_rate := lander_spin_rate + torque/refresh_rate;
+ END;
+ IF ISKEYDOWN(RIGHT) THEN
+  lander_spin_rate := lander_spin_rate - torque/refresh_rate;
+ END;
+ IF ISKEYDOWN(ESC) THEN
+  KILL;
+ END;
+
+ lander_pos[1] := lander_pos[1] + lander_speed[1];
+ lander_pos[2] := lander_pos[2] + lander_speed[2];
+ lander_angle := lander_angle + lander_spin_rate;
+
+ RECT(RGB(0,0,0));
+ TEXTOUT_P(STRING(ROUND(fuel, 0)), 0, 0, 2, colour);
+
+ LOCAL nose = {lander_pos[1]-lander_size[1]*COS(90-lander_angle)*zoom, lander_pos[2]-lander_size[1]*SIN(90-lander_angle)*zoom};
+ LOCAL left_base = {lander_pos[1]-lander_size[2]*COS(lander_angle)*zoom, lander_pos[2]+lander_size[2]*SIN(lander_angle)*zoom};
+ LOCAL right_base = {lander_pos[1]+lander_size[2]*COS(lander_angle)*zoom, lander_pos[2]-lander_size[2]*SIN(lander_angle)*zoom}; 
+ LOCAL exhaust = {lander_pos[1]+lander_size[3]*COS(90-lander_angle)*zoom, lander_pos[2]+lander_size[3]*SIN(90-lander_angle)*zoom};
+
+ LINE_P(nose[1] + pan[1]*zoom, nose[2] + pan[2]*zoom, left_base[1] + pan[1]*zoom, left_base[2] + pan[2]*zoom, colour);
+ LINE_P(nose[1] + pan[1]*zoom, nose[2] + pan[2]*zoom, right_base[1] + pan[1]*zoom, right_base[2] + pan[2]*zoom, colour);
+ LINE_P(left_base[1] + pan[1]*zoom, left_base[2] + pan[2]*zoom, right_base[1] + pan[1]*zoom, right_base[2] + pan[2]*zoom, colour);
+ IF ISKEYDOWN(UP) and fuel > 0 THEN
+  LINE_P(left_base[1] + pan[1]*zoom, left_base[2] + pan[2]*zoom, exhaust[1] + pan[1]*zoom, exhaust[2] + pan[2]*zoom, colour);
+  LINE_P(right_base[1] + pan[1]*zoom, right_base[2] + pan[2]*zoom, exhaust[1] + pan[1]*zoom, exhaust[2] + pan[2]*zoom, colour);
+ END;
+
+ LOCAL prev_point = {0, 100};
+ FOR X FROM 1 TO N/2 STEP 2 DO
+  LOCAL transform = terrain[X];
+  LOCAL new_point = {prev_point[1] + transform[1]*zoom, prev_point[2] + transform[2]*zoom};
+  LINE_P(prev_point[1] + pan[1]*zoom, prev_point[2] + pan[2]*zoom, new_point[1] + pan[1]*zoom, new_point[2] + pan[2]*zoom, colour);
+  prev_point := new_point;
+ END;
+
+ LOCAL new_point = {prev_point[1] + 30*zoom, prev_point[2]};
+ LINE_P(prev_point[1] + pan[1]*zoom, prev_point[2] + pan[2]*zoom, new_point[1] + pan[1]*zoom, new_point[2] + pan[2]*zoom, colour);
+ prev_point := new_point;
+
+ FOR X FROM 1 TO N/2 STEP 2 DO
+  LOCAL transform = terrain[X];
+  LOCAL new_point = {prev_point[1] + transform[1]*zoom, prev_point[2] + transform[2]*zoom};
+  LINE_P(prev_point[1] + pan[1]*zoom, prev_point[2] + pan[2]*zoom, new_point[1] + pan[1]*zoom, new_point[2] + pan[2]*zoom, colour);
+  prev_point := new_point;
+ END;
+
+ WAIT(1/refresh_rate);
+
+END;
+
+END;

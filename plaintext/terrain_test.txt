@@ -1,0 +1,35 @@
+EXPORT terrain_test()
+BEGIN
+
+LOCAL N = 50, X_VAR = 20, Y_VAR = 20;
+
+WHILE TRUE DO
+LOCAL terrain = {};
+FOR X FROM 0 TO N DO
+ terrain[0] := {ROUND(rand*X_VAR, 0),ROUND(rand*Y_VAR-Y_VAR/2, 0)};
+END;
+
+RECT();
+LOCAL prev_point = {0, GROBW_P(G0)/2};
+FOR X FROM 1 TO N/2 STEP 2 DO
+ LOCAL transform = terrain[X];
+ LOCAL new_point = {prev_point[1] + transform[1], prev_point[2] + transform[2]};
+ LINE_P(prev_point[1], prev_point[2], new_point[1], new_point[2]);
+ prev_point := new_point;
+END;
+
+LOCAL new_point = {prev_point[1] + 30, prev_point[2]};
+LINE_P(prev_point[1], prev_point[2], new_point[1], new_point[2]);
+prev_point := new_point;
+
+FOR X FROM 1 TO N/2 STEP 2 DO
+ LOCAL transform = terrain[X];
+ LOCAL new_point = {prev_point[1] + transform[1], prev_point[2] + transform[2]};
+ LINE_P(prev_point[1], prev_point[2], new_point[1], new_point[2]);
+ prev_point := new_point;
+END;
+
+WAIT(1);
+END;
+
+END;

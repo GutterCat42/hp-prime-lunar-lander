@@ -1,0 +1,25 @@
+EXPORT DICT_FIND_INDEX(dict, key)
+BEGIN
+ FOR I FROM 1 TO SIZE(dict) DO
+  LOCAL item := dict[I];
+  IF item[1] == key THEN
+   RETURN I;
+  END;
+ END;
+ RETURN false;
+END;
+
+EXPORT DICT_GET_VALUE(dict, key)
+BEGIN
+ LOCAL item = dict[DICT_FIND_INDEX(dict, key)];
+ RETURN item[2];
+END;
+
+EXPORT DICT_APPEND(dict, key, value)
+BEGIN
+ IF DICT_FIND_INDEX(dict, key) != false THEN
+  dict[DICT_FIND_INDEX(dict, key)] := {key, value};
+ ELSE
+  dict := CONCAT(dict, {{key, value}});
+ END;
+END;
