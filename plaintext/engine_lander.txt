@@ -16,19 +16,15 @@ LOCAL torque = 10;
 LOCAL lander_size = {20, 8, 5};
 LOCAL fuel = 100, depletion_rate = 20;
 LOCAL zoom = 1, pan = {0, 0};
+LOCAL terrain_n_vertices = 9, terrain_x_var = 30, terrain_y_var = 30, flat_length = 30;
 
-EXPORT terrain = {};
-
-EXPORT GENERATE_TERRAIN()
+EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var)
 BEGIN
- LOCAL N = 200, x_var = 30, y_var = 30;
  LOCAL prev_point = {0, 0}, new_point;
- //ARRAY_APPEND(terrain, prev_point);
- terrain := CONCAT(terrain, {prev_point});
- FOR X FROM 1 TO N-1 DO
-  new_point := {rand(1, 1, x_var), rand(1, -y_var/2, y_var/2)};
-  //ARRAY_APPEND(terrain, VECTOR_SUM(prev_point, new_point));
-  terrain := CONCAT(terrain, {VECTOR_SUM(prev_point, new_point)});
+ LOCAL terrain = {prev_point};
+ FOR X FROM 1 TO n_vertices-1 DO
+  new_point := VECTOR_SUM(prev_point, {rand(1, 1, x_var), rand(1, -y_var/2, y_var/2)});
+  terrain := CONCAT(terrain, {new_point});
   prev_point := new_point;
  END;
  RETURN terrain;
@@ -37,7 +33,7 @@ END;
 EXPORT ENGINE_LANDER()
 BEGIN
 
-PRINT();
-PRINT(GENERATE_TERRAIN());
+LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_x_var, terrain_y_var);
+terrain := LIST_INSERT(terrain, ROUND(terrain_n_vertices/2+1, 0), VECTOR_SUM(terrain[ROUND(terrain_n_vertices/2, 0)], {flat_length, 0}));
 
 END;
