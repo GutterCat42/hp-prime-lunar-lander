@@ -33,23 +33,35 @@ BEGIN
  RETURN {vector_2[1]-vector_1[1], vector_2[2]-vector_1[2]};
 END;
 
-EXPORT DRAW_SHAPE(vertices, lines, position, angle, shape_scale)
+EXPORT POLYGON_OFFSET(vertices, offset)
 BEGIN
- FOR L FROM 1 TO length(lines) DO
-  LOCAL line = lines[L];
-  LOCAL point_1_index = line[1],
-        point_2_index = line[2];
-  LOCAL point_1 = vertices[point_1_index],
-        point_2 = vertices[point_2_index];
+ LOCAL adjusted_vertices = {};
+ FOR P FROM 1 TO SIZE(vertices) DO
+  adjusted_vertices := CONCAT(adjusted_vertices, {VECTOR_SUM(vertices[P], offset)});
+ END;
+ RETURN adjusted_vertices;
+END;
+
+EXPORT DRAW_POLYGON(vertices, position, angle, shape_scale)
+BEGIN
+ FOR L FROM 1 TO SIZE(vertices) DO
+  LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
+  IF L == SIZE(vertices) THEN
+   point_2 := vertices[0];
+  END;
   LOCAL point_1_rotated = ROTATE(point_1[1]*shape_scale, point_1[2]*shape_scale, angle),
         point_2_rotated = ROTATE(point_2[1]*shape_scale, point_2[2]*shape_scale, angle);
   LINE_P(point_1_rotated[1]+position[1], point_1_rotated[2]+position[2], point_2_rotated[1]+position[1], point_2_rotated[2]+position[2]);
  END;
 END;
 
-// this doesnt seem to work as a subprogram for some reason
-// maybe due to not being able to change local (to the main program) variables?
-EXPORT ARRAY_APPEND(array, new_stuff)
+EXPORT LIST_INSERT(list, index, value)
 BEGIN
- array := CONCAT(array, {new_stuff});
+ IF index == 1 THEN
+  RETURN CONCAT({value}, {list});
+ END;
+ IF index > SIZE(list) or index == 0 THEN
+  RETURN CONCAT(list, {value});
+ END;
+ RETURN CONCAT(SUB(list, 1, index-1), {value}, SUB(list, index, SIZE(list)));
 END;
