@@ -45,9 +45,9 @@ END;
 EXPORT DRAW_POLYGON(vertices, position, angle, shape_scale)
 BEGIN
  FOR L FROM 1 TO SIZE(vertices) DO
-  LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
-  IF L == SIZE(vertices) THEN
-   point_2 := vertices[0];
+  LOCAL point_1 = vertices[L], point_2 = vertices[1];
+  IF L < SIZE(vertices) THEN
+   point_2 := vertices[L+1];
   END;
   LOCAL point_1_rotated = ROTATE(point_1[1]*shape_scale, point_1[2]*shape_scale, angle),
         point_2_rotated = ROTATE(point_2[1]*shape_scale, point_2[2]*shape_scale, angle);
