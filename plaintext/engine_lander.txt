@@ -16,7 +16,7 @@ BEGIN
  LOCAL thrust = 15;
  LOCAL torque = 10;
  LOCAL lander_size = {20, 8, 5};
- LOCAL fuel = 1000, depletion_rate = 20;
+ LOCAL fuel = 100, depletion_rate = 20;
  LOCAL zoom = 1, pan = {0, 0};
  LOCAL lander_vertices = {{-8, 0}, {0, -20}, {8, 0}}, exhaust_vertices = {{-8, 0}, {0, 6}, {8, 0}};
  LOCAL running = true;
@@ -38,8 +38,8 @@ BEGIN
    running := false;
   END;
 
-  // TODO: make panning better
-  pan := {−lander_pos[1]/zoom+SCREEN_WIDTH/2/zoom, −lander_pos[2]/zoom+SCREEN_HEIGHT/3/zoom};
+  // TODO: make panning smooth and make zooming work
+  pan := VECTOR_DIFFERENCE(lander_pos, {SCREEN_WIDTH/2, SCREEN_HEIGHT/3});
   
   lander_spin_rate := lander_spin_rate * spin_damp_rate;
   lander_angle := lander_angle + lander_spin_rate;
