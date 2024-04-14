@@ -1,25 +1,25 @@
-EXPORT MAGNITUDE(x, y)
+EXPORT MAGNITUDE(vector)
 BEGIN
- RETURN √(x^2+y^2);
+ RETURN SQRT(vector[1]^2+vector[2]^2);
 END;
 
-EXPORT ANGLE(x, y)
+EXPORT ANGLE(vector)
 BEGIN
- IF x == 0 and y == 0 THEN
+ IF vector[1] == 0 and vector[2] == 0 THEN
   RETURN 0;
  ELSE
-  IF y > 0 THEN
-   RETURN ACOS(x/MAGNITUDE(x,y));
+  IF vector[2] > 0 THEN
+   RETURN ACOS(vector[1]/MAGNITUDE(vector));
   ELSE
-   RETURN 360-ACOS(x/MAGNITUDE(x,y));
+   RETURN 360-ACOS(vector[1]/MAGNITUDE(vector));
   END;
  END;
 END;
 
-EXPORT ROTATE(x, y, angle)
+EXPORT ROTATE_VECTOR(vector, angle)
 BEGIN
- LOCAL magnitude = MAGNITUDE(x, y),
-       original_angle = ANGLE(x, y);
+ LOCAL magnitude = MAGNITUDE(vector),
+       original_angle = ANGLE(vector);
  RETURN {magnitude*COS(original_angle+angle), magnitude*SIN(original_angle+angle)};
 END;
 
@@ -33,6 +33,11 @@ BEGIN
  RETURN {vector_2[1]-vector_1[1], vector_2[2]-vector_1[2]};
 END;
 
+EXPORT VECTOR_SCALE(vector, scalar_mult)
+BEGIN
+ RETURN {vector[1]*scalar_mult, vector[2]*scalar_mult};
+END;
+
 EXPORT POLYGON_OFFSET(vertices, offset)
 BEGIN
  LOCAL adjusted_vertices = {};
@@ -42,16 +47,18 @@ BEGIN
  RETURN adjusted_vertices;
 END;
 
-EXPORT DRAW_POLYGON(vertices, position, angle, shape_scale)
+EXPORT DRAW_POLYGON(vertices, position, angle, shape_scale, colour)
 BEGIN
  FOR L FROM 1 TO SIZE(vertices) DO
   LOCAL point_1 = vertices[L], point_2 = vertices[1];
   IF L < SIZE(vertices) THEN
    point_2 := vertices[L+1];
   END;
-  LOCAL point_1_rotated = ROTATE(point_1[1]*shape_scale, point_1[2]*shape_scale, angle),
-        point_2_rotated = ROTATE(point_2[1]*shape_scale, point_2[2]*shape_scale, angle);
-  LINE_P(point_1_rotated[1]+position[1], point_1_rotated[2]+position[2], point_2_rotated[1]+position[1], point_2_rotated[2]+position[2]);
+  LOCAL point_1_rotated = ROTATE_VECTOR(point_1, angle),
+        point_2_rotated = ROTATE_VECTOR(point_2, angle);
+  LOCAL screen_point_1 = VECTOR_SCALE(point_1_rotated+position, shape_scale),
+        screen_point_2 = VECTOR_SCALE(point_2_rotated+position, shape_scale);
+  LINE_P(screen_point_1[1], screen_point_1[2], screen_point_2[1], screen_point_2[2], colour);
  END;
 END;
 
@@ -64,4 +71,34 @@ BEGIN
   RETURN CONCAT(list, {value});
  END;
  RETURN CONCAT(SUB(list, 1, index-1), {value}, SUB(list, index, SIZE(list)));
+END;
+
+EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var, flat_length)
+BEGIN
+ LOCAL prev_point = {0, 0}, new_point;
+ LOCAL terrain = {prev_point};
+ FOR X FROM 1 TO n_vertices-1 DO
+  new_point := VECTOR_SUM(prev_point, {RANDINT(1, x_var), RANDINT(-y_var/2, y_var/2)});
+  terrain := CONCAT(terrain, {new_point});
+  prev_point := new_point;
+ END;
+ // TODO: make the flat section work
+ //IF flat_length > 0 THEN
+ // terrain := LIST_INSERT(terrain, ROUND(n_vertices/2+1, 0), VECTOR_SUM(terrain[ROUND(n_vertices/2, 0)], {flat_length, 0}));
+ //END;
+ RETURN terrain;
+END;
+
+EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour, screen_width)
+BEGIN
+ LOCAL offset = VECTOR_SCALE(pan, zoom);
+ FOR L FROM 1 TO SIZE(vertices)-1 DO
+  LOCAL point_1 = vertices[L], point_2 := vertices[L+1];
+  // Maybe TODO (?): add optimisation for y?
+  IF point_2[1]+offset[1] > 0 and point_1[1]+offset[1] < screen_width THEN
+   LOCAL point_1_scaled = VECTOR_SCALE(point_1+pan, zoom),
+         point_2_scaled = VECTOR_SCALE(point_2+pan, zoom);
+   LINE_P(point_1_scaled[1], point_1_scaled[2], point_2_scaled[1], point_2_scaled[2], colour);
+  END;
+ END;
 END;
