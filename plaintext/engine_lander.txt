@@ -2,6 +2,7 @@
 CONST KEY_UP = 2, KEY_DOWN = 12, KEY_LEFT = 7, KEY_RIGHT = 8, KEY_ESC = 4;
 CONST SCREEN_WIDTH = 320, SCREEN_HEIGHT = 240;
 CONST FOREGROUND_COLOUR = RGB(0, 255, 0), BACKGROUND_COLOUR = RGB(0, 0, 0);
+CONST FPS_CAP = 30;
 
 EXPORT ENGINE_LANDER()
 BEGIN
@@ -11,7 +12,7 @@ BEGIN
  LOCAL lander_spin_rate = 0;
  LOCAL gravity = 5;
  LOCAL spin_damp_rate = 0.97;
- LOCAL horizontal_damp = 0.98;
+ LOCAL air_damp = 0.98;
  LOCAL thrust = 15;
  LOCAL torque = 10;
  LOCAL lander_size = {20, 8, 5};
@@ -21,23 +22,26 @@ BEGIN
  LOCAL running = true;
  LOCAL terrain_n_vertices = 100, terrain_x_var = 30, terrain_y_var = 30, flat_length = 30;
  LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_x_var, terrain_y_var, flat_length);
- LOCAL frame_ticks, prev_ticks = TICKS()-1, fps, delta;
+ LOCAL frame_ticks, prev_ticks = TICKS()-1, fps, dt;
 
  WHILE running DO
   frame_ticks := TICKS() - prev_ticks;
   prev_ticks := TICKS();
   fps := 1000 / frame_ticks;
-  delta := 1 / fps;
+  dt := 1000/FPS_CAP-frame_ticks;
+  IF dt > 0 THEN
+   WAIT(dt/1000);
+  END;
 
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
-   lander_speed := VECTOR_SUM(lander_speed, ROTATE_VECTOR({0, -thrust * delta}, lander_angle));
-   fuel := fuel - depletion_rate * delta;
+   lander_speed := VECTOR_SUM(lander_speed, ROTATE_VECTOR({0, -thrust / fps}, lander_angle));
+   fuel := fuel - depletion_rate / fps;
   END;
   IF ISKEYDOWN(KEY_LEFT) THEN
-   lander_spin_rate := lander_spin_rate - torque * delta;
+   lander_spin_rate := lander_spin_rate - torque;
   END;
   IF ISKEYDOWN(KEY_RIGHT) THEN
-   lander_spin_rate := lander_spin_rate + torque * delta;
+   lander_spin_rate := lander_spin_rate + torque;
   END;
   IF ISKEYDOWN(KEY_ESC) THEN
    running := false;
@@ -47,14 +51,14 @@ BEGIN
   pan := VECTOR_DIFFERENCE(lander_pos, {SCREEN_WIDTH/2, SCREEN_HEIGHT/3});
   
   lander_spin_rate := lander_spin_rate * spin_damp_rate;
-  lander_angle := lander_angle + lander_spin_rate;
-  lander_speed[1] := lander_speed[1] * horizontal_damp;
-  lander_speed[2] := lander_speed[2] + gravity * delta;
+  lander_angle := lander_angle + lander_spin_rate / fps;
+  lander_speed[2] := lander_speed[2] + gravity / fps;
+  lander_speed := VECTOR_DIFFERENCE(lander_speed*air_damp/fps, lander_speed);
   lander_pos := VECTOR_SUM(lander_pos, lander_speed);
-
+  
   RECT(BACKGROUND_COLOUR);
-  TEXTOUT_P(STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH-50, 0, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH-40, 0, 2, FOREGROUND_COLOUR);
 
   DRAW_POLYGON(lander_vertices, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
