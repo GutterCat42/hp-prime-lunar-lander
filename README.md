@@ -15,6 +15,10 @@ I want to keep the scope of the 'engine' relatively small for now, so as not to 
 This would include rendering game objects and UI objects, some sort of camera functionality, taking inputs, applying basic physics, collision detection (but the collisions do not need to apply forces to objects yet), and maybe something else that I'm forgetting.
 The point is, the engine should just be kept bare-bones for now, just enough to make this game, and it can be fleshed out afterwards. Any 'extra' features can go in separate files, like `dictionary_test.hpprgm`.
 
+## Requirements:
+- Update your HP Prime to the latest firmware
+- Ensure it is set to degrees mode when running the programs!
+
 ## To do:
 (these things are implemented only in `lunar_lander.hpprgm` so far)
 - [x] Make the lander rotate and do physics 
