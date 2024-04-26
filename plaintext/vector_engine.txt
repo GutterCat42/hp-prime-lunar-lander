@@ -102,3 +102,12 @@ BEGIN
   END;
  END;
 END;
+
+EXPORT CLAMP(value, min_val, max_val)
+BEGIN
+ CASE
+  IF value < min_val THEN value := min_val END;
+  IF value > max_val THEN value := max_val END;
+ END;
+ RETURN value;
+END;
