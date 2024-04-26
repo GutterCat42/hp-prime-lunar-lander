@@ -46,7 +46,7 @@ BEGIN
   IF ISKEYDOWN(KEY_ESC) THEN
    running := false;
   END;
-
+  
   // TODO: make zooming work
   pan := pan + VECTOR_DIFFERENCE(pan, VECTOR_DIFFERENCE(lander_pos, {SCREEN_WIDTH/2, SCREEN_HEIGHT/3})) * pan_rate;
   
