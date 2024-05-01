@@ -91,11 +91,10 @@ END;
 
 EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour, screen_width)
 BEGIN
- LOCAL offset = VECTOR_SCALE(pan, zoom);
  FOR L FROM 1 TO SIZE(vertices)-1 DO
   LOCAL point_1 = vertices[L], point_2 := vertices[L+1];
   // Maybe TODO (?): add optimisation for y?
-  IF point_2[1]+offset[1] > 0 and point_1[1]+offset[1] < screen_width THEN
+  IF point_2[1]+pan[1] > 0 and point_1[1]+pan[1] < screen_width/zoom THEN
    LOCAL point_1_scaled = VECTOR_SCALE(point_1+pan, zoom),
          point_2_scaled = VECTOR_SCALE(point_2+pan, zoom);
    LINE_P(point_1_scaled[1], point_1_scaled[2], point_2_scaled[1], point_2_scaled[2], colour);

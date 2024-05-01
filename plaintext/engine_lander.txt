@@ -47,8 +47,7 @@ BEGIN
    running := false;
   END;
   
-  // TODO: make zooming work
-  pan := pan + VECTOR_DIFFERENCE(pan, VECTOR_DIFFERENCE(lander_pos, {SCREEN_WIDTH/2, SCREEN_HEIGHT/3})) * pan_rate;
+  pan := pan + VECTOR_DIFFERENCE(pan, VECTOR_DIFFERENCE(lander_pos, {SCREEN_WIDTH/2/zoom, SCREEN_HEIGHT/3/zoom})) * pan_rate;
   
   lander_spin_rate := lander_spin_rate * spin_damp_rate;
   lander_angle := lander_angle + lander_spin_rate / fps;
