@@ -106,26 +106,9 @@ BEGIN
  END;
 END;
 
-EXPORT CLAMP(value, min_val, max_val)
+EXPORT IS_INTERSECTING(line_a_start, line_a_end, line_b_start, line_b_end)
 BEGIN
- CASE
-  IF value < min_val THEN value := min_val END;
-  IF value > max_val THEN value := max_val END;
- END;
- RETURN value;
-END;
-
-EXPORT NORMALISE_VECTOR(vector)
-BEGIN
- RETURN VECTOR_SCALE(vector, 1/MAGNITUDE(vector));
-END;
-
-EXPORT DOT_PRODUCT(vector_a, vector_b)
-BEGIN
- RETURN vector_a[1] * vector_b[1] + vector_a[2] * vector_b[2];
-END;
-
-EXPORT PROJECT_VECTOR(vector_a, vector_b)
-BEGIN
- RETURN VECTOR_SCALE(NORMALISE_VECTOR(vector_b), DOT_PRODUCT(vector_a, NORMALISE_VECTOR(vector_b)));
+ RETURN ((line_b_end[1]-line_b_start[1])*(line_a_start[2]-line_b_end[2]) - (line_b_end[2]-line_b_start[2])*(line_a_start[1]-line_b_end[1]))
+        - ((line_b_end[1]-line_b_start[1])*(line_a_end[2]-line_b_end[2]) - (line_b_end[2]-line_b_start[2])*(line_a_end[1]-line_b_end[1]))
+        < 0;
 END;
