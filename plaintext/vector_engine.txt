@@ -94,10 +94,14 @@ BEGIN
  FOR L FROM 1 TO SIZE(vertices)-1 DO
   LOCAL point_1 = vertices[L], point_2 := vertices[L+1];
   // Maybe TODO (?): add optimisation for y?
-  IF point_2[1]+pan[1] > 0 and point_1[1]+pan[1] < screen_width/zoom THEN
-   LOCAL point_1_scaled = VECTOR_SCALE(point_1+pan, zoom),
-         point_2_scaled = VECTOR_SCALE(point_2+pan, zoom);
-   LINE_P(point_1_scaled[1], point_1_scaled[2], point_2_scaled[1], point_2_scaled[2], colour);
+  IF point_2[1]+pan[1] > 0 THEN
+   IF point_1[1]+pan[1] < screen_width/zoom THEN
+    LOCAL point_1_scaled = VECTOR_SCALE(point_1+pan, zoom),
+          point_2_scaled = VECTOR_SCALE(point_2+pan, zoom);
+    LINE_P(point_1_scaled[1], point_1_scaled[2], point_2_scaled[1], point_2_scaled[2], colour);
+   ELSE
+    RETURN;
+   END;
   END;
  END;
 END;
@@ -109,4 +113,19 @@ BEGIN
   IF value > max_val THEN value := max_val END;
  END;
  RETURN value;
+END;
+
+EXPORT NORMALISE_VECTOR(vector)
+BEGIN
+ RETURN VECTOR_SCALE(vector, 1/MAGNITUDE(vector));
+END;
+
+EXPORT DOT_PRODUCT(vector_a, vector_b)
+BEGIN
+ RETURN vector_a[1] * vector_b[1] + vector_a[2] * vector_b[2];
+END;
+
+EXPORT PROJECT_VECTOR(vector_a, vector_b)
+BEGIN
+ RETURN VECTOR_SCALE(NORMALISE_VECTOR(vector_b), DOT_PRODUCT(vector_a, NORMALISE_VECTOR(vector_b)));
 END;
