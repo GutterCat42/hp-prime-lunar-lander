@@ -23,26 +23,11 @@ BEGIN
  RETURN {magnitude*COS(original_angle+angle), magnitude*SIN(original_angle+angle)};
 END;
 
-EXPORT VECTOR_SUM(vector_1, vector_2)
-BEGIN
- RETURN {vector_1[1]+vector_2[1], vector_1[2]+vector_2[2]};
-END;
-
-EXPORT VECTOR_DIFFERENCE(vector_1, vector_2)
-BEGIN
- RETURN {vector_2[1]-vector_1[1], vector_2[2]-vector_1[2]};
-END;
-
-EXPORT VECTOR_SCALE(vector, scalar_mult)
-BEGIN
- RETURN {vector[1]*scalar_mult, vector[2]*scalar_mult};
-END;
-
 EXPORT POLYGON_OFFSET(vertices, offset)
 BEGIN
  LOCAL adjusted_vertices = {};
  FOR P FROM 1 TO SIZE(vertices) DO
-  adjusted_vertices := CONCAT(adjusted_vertices, {VECTOR_SUM(vertices[P], offset)});
+  adjusted_vertices := CONCAT(adjusted_vertices, {vertices[P] + offset});
  END;
  RETURN adjusted_vertices;
 END;
@@ -56,8 +41,8 @@ BEGIN
   END;
   LOCAL point_1_rotated = ROTATE_VECTOR(point_1, angle),
         point_2_rotated = ROTATE_VECTOR(point_2, angle);
-  LOCAL screen_point_1 = VECTOR_SCALE(point_1_rotated+position, shape_scale),
-        screen_point_2 = VECTOR_SCALE(point_2_rotated+position, shape_scale);
+  LOCAL screen_point_1 = (point_1_rotated+position)*shape_scale,
+        screen_point_2 = (point_2_rotated+position)*shape_scale;
   LINE_P(screen_point_1[1], screen_point_1[2], screen_point_2[1], screen_point_2[2], colour);
  END;
 END;
@@ -78,13 +63,13 @@ BEGIN
  LOCAL prev_point = {0, 0}, new_point;
  LOCAL terrain = {prev_point};
  FOR X FROM 1 TO n_vertices-1 DO
-  new_point := VECTOR_SUM(prev_point, {RANDINT(1, x_var), RANDINT(-y_var/2, y_var/2)});
+  new_point := prev_point+{RANDINT(1, x_var), RANDINT(-y_var/2, y_var/2)};
   terrain := CONCAT(terrain, {new_point});
   prev_point := new_point;
  END;
  // TODO: make the flat section work
  //IF flat_length > 0 THEN
- // terrain := LIST_INSERT(terrain, ROUND(n_vertices/2+1, 0), VECTOR_SUM(terrain[ROUND(n_vertices/2, 0)], {flat_length, 0}));
+ // terrain := LIST_INSERT(terrain, ROUND(n_vertices/2+1, 0), terrain[ROUND(n_vertices/2, 0)] + {flat_length, 0});
  //END;
  RETURN terrain;
 END;
@@ -110,8 +95,8 @@ EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour)
 BEGIN
  FOR L FROM 1 TO SIZE(vertices)-1 DO
  LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
- LOCAL point_1_transformed = VECTOR_SCALE(point_1+pan, zoom),
-       point_2_transformed = VECTOR_SCALE(point_2+pan, zoom);
+ LOCAL point_1_transformed = (point_1+pan)*zoom,
+       point_2_transformed = (point_2+pan)*zoom;
  LINE_P(point_1_transformed[1], point_1_transformed[2], point_2_transformed[1], point_2_transformed[2], colour);
  END;
 END;
