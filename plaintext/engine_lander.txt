@@ -61,7 +61,7 @@ BEGIN
   
   DRAW_POLYGON(lander_vertices, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
-   DRAW_POLYGON(exhaust_vertices, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
+   DRAW_POLYGON({exhaust_vertices[1], VECTOR_SUM(exhaust_vertices[2], {RANDINT(-1, 1), RANDINT(0, 4)}), exhaust_vertices[3]}, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
   END;
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
