@@ -60,7 +60,7 @@ END;
 
 EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var, flat_length)
 BEGIN
- LOCAL prev_point = {0, 100}, new_point;
+ LOCAL prev_point = {0, 0}, new_point;
  LOCAL terrain = {prev_point};
  FOR X FROM 1 TO n_vertices-1 DO
   new_point := prev_point+{RANDINT(x_var/2, x_var), RANDINT(-y_var/2, y_var/2)};
@@ -71,6 +71,7 @@ BEGIN
  //IF flat_length > 0 THEN
  // terrain := LIST_INSERT(terrain, ROUND(n_vertices/2+1, 0), terrain[ROUND(n_vertices/2, 0)] + {flat_length, 0});
  //END;
+ terrain := POLYGON_OFFSET(terrain, {-0.5*new_point[1], 100});
  RETURN terrain;
 END;
 
