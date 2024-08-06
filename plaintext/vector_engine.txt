@@ -113,8 +113,6 @@ BEGIN
  RETURN ARE_POINTS_ON_SAME_SIDE(line_a_start, line_a_end, line_b_start, line_b_end) == 0 AND ARE_POINTS_ON_SAME_SIDE(line_b_start, line_b_end, line_a_start, line_a_end) == 0;
 END;
 
-CONST collision_epsilon = MAGNITUDE(GET_TERRAIN_VAR());
-
 EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, lander_circumradius, terrain_vertices)
 BEGIN
  FOR N FROM 1 TO SIZE(terrain_vertices)-1 DO

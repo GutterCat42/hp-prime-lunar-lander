@@ -45,7 +45,7 @@ BEGIN
  );
  LOCAL running = true;
  LOCAL terrain_n_vertices = 50;
- LOCAL terrain_var = GET_TERRAIN_VAR();
+ LOCAL terrain_var = {30, 30};
  LOCAL flat_length = 30;
  LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length);
  LOCAL terrain_on_screen;
