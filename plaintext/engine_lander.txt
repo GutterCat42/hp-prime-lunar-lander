@@ -31,7 +31,7 @@ BEGIN
   IF fps > FPS_CAP THEN
    dt := 1000/FPS_CAP-frame_ticks;
    WAIT(dt/1000); 
-  END;  
+  END;
 
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
    lander_speed := lander_speed + ROTATE_VECTOR({0, -thrust / fps}, lander_angle);
@@ -65,7 +65,7 @@ BEGIN
   END;
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
-  DRAW_TERRAIN(terrain_on_screen, {0, 100}+pan, zoom, FOREGROUND_COLOUR);
+  DRAW_TERRAIN(terrain_on_screen, pan, zoom, FOREGROUND_COLOUR);
   IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, terrain_on_screen) == 1 THEN
    WAIT(1);
    running := false;

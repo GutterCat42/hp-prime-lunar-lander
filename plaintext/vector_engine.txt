@@ -60,10 +60,10 @@ END;
 
 EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var, flat_length)
 BEGIN
- LOCAL prev_point = {0, 0}, new_point;
+ LOCAL prev_point = {0, 100}, new_point;
  LOCAL terrain = {prev_point};
  FOR X FROM 1 TO n_vertices-1 DO
-  new_point := prev_point+{RANDINT(1, x_var), RANDINT(-y_var/2, y_var/2)};
+  new_point := prev_point+{RANDINT(x_var/2, x_var), RANDINT(-y_var/2, y_var/2)};
   terrain := CONCAT(terrain, {new_point});
   prev_point := new_point;
  END;
@@ -89,7 +89,6 @@ BEGIN
   END;
  END; 
 END;
-
 
 EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour)
 BEGIN
@@ -119,7 +118,7 @@ END;
 EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, terrain_vertices)
 BEGIN
  FOR N FROM 1 TO SIZE(terrain_vertices)-1 DO
-  LOCAL terrain_point_a = terrain_vertices[N]+{0,100}, terrain_point_b = terrain_vertices[N+1]+{0,100};
+  LOCAL terrain_point_a = terrain_vertices[N], terrain_point_b = terrain_vertices[N+1];
   FOR L FROM 1 TO SIZE(lander_vertices) DO
    LOCAL lander_point_a = lander_vertices[L], lander_point_b = lander_vertices[1];
    IF L < SIZE(lander_vertices) THEN
