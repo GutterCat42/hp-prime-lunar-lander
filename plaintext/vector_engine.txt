@@ -18,8 +18,8 @@ END;
 
 EXPORT ROTATE_VECTOR(vector, angle)
 BEGIN
- LOCAL magnitude = MAGNITUDE(vector),
-       original_angle = ANGLE(vector);
+ LOCAL magnitude = MAGNITUDE(vector);
+ LOCAL original_angle = ANGLE(vector);
  RETURN {magnitude*COS(original_angle+angle), magnitude*SIN(original_angle+angle)};
 END;
 
@@ -39,10 +39,10 @@ BEGIN
   IF L < SIZE(vertices) THEN
    point_2 := vertices[L+1];
   END;
-  LOCAL point_1_rotated = ROTATE_VECTOR(point_1, angle),
-        point_2_rotated = ROTATE_VECTOR(point_2, angle);
-  LOCAL screen_point_1 = (point_1_rotated+position)*shape_scale,
-        screen_point_2 = (point_2_rotated+position)*shape_scale;
+  LOCAL point_1_rotated = ROTATE_VECTOR(point_1, angle);
+  LOCAL point_2_rotated = ROTATE_VECTOR(point_2, angle);
+  LOCAL screen_point_1 = (point_1_rotated+position)*shape_scale;
+  LOCAL screen_point_2 = (point_2_rotated+position)*shape_scale;
   LINE_P(screen_point_1[1], screen_point_1[2], screen_point_2[1], screen_point_2[2], colour);
  END;
 END;
@@ -60,10 +60,11 @@ END;
 
 EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var, flat_length)
 BEGIN
- LOCAL prev_point = {0, 0}, new_point;
+ LOCAL prev_point = {0, 0};
+ LOCAL new_point;
  LOCAL terrain = {prev_point};
  FOR X FROM 1 TO n_vertices-1 DO
-  new_point := prev_point+{RANDINT(x_var/2, x_var), RANDINT(-y_var/2, y_var/2)};
+  new_point := prev_point+{RANDINT(1, x_var), RANDINT(-y_var/2, y_var/2)};
   terrain := CONCAT(terrain, {new_point});
   prev_point := new_point;
  END;
@@ -71,7 +72,6 @@ BEGIN
  //IF flat_length > 0 THEN
  // terrain := LIST_INSERT(terrain, ROUND(n_vertices/2+1, 0), terrain[ROUND(n_vertices/2, 0)] + {flat_length, 0});
  //END;
- terrain := POLYGON_OFFSET(terrain, {-0.5*new_point[1], 100});
  RETURN terrain;
 END;
 
@@ -79,11 +79,9 @@ EXPORT GET_SEGMENTS_ON_SCREEN(vertices, pan, zoom, screen_width)
 BEGIN
  LOCAL onscreen_vertices = {};
  FOR L FROM 1 TO SIZE(vertices)-1 DO
-  LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
-  IF point_2[1]+pan[1] > 0 THEN
-   IF point_1[1]+pan[1] < screen_width/zoom THEN
-    onscreen_vertices := CONCAT(onscreen_vertices, {point_1});
-    onscreen_vertices := CONCAT(onscreen_vertices, {point_2}); 
+  IF vertices[L+1, 1]+pan[1] > 0 THEN
+   IF vertices[L, 1]+pan[1] < screen_width/zoom THEN
+    onscreen_vertices := CONCAT(onscreen_vertices, {vertices[L]}, {vertices[L+1]});
    ELSE
     RETURN onscreen_vertices;
    END;
@@ -94,10 +92,9 @@ END;
 EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour)
 BEGIN
  FOR L FROM 1 TO SIZE(vertices)-1 DO
- LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
- LOCAL point_1_transformed = (point_1+pan)*zoom,
-       point_2_transformed = (point_2+pan)*zoom;
- LINE_P(point_1_transformed[1], point_1_transformed[2], point_2_transformed[1], point_2_transformed[2], colour);
+  LOCAL point_1_transformed = (vertices[L] + pan) * zoom;
+  LOCAL point_2_transformed = (vertices[L + 1] + pan) * zoom;
+  LINE_P(point_1_transformed[1], point_1_transformed[2], point_2_transformed[1], point_2_transformed[2], colour);
  END;
 END;
 
@@ -116,19 +113,29 @@ BEGIN
  RETURN ARE_POINTS_ON_SAME_SIDE(line_a_start, line_a_end, line_b_start, line_b_end) == 0 AND ARE_POINTS_ON_SAME_SIDE(line_b_start, line_b_end, line_a_start, line_a_end) == 0;
 END;
 
-EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, terrain_vertices)
+CONST collision_epsilon = MAGNITUDE(GET_TERRAIN_VAR());
+
+EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, lander_circumradius, terrain_vertices)
 BEGIN
  FOR N FROM 1 TO SIZE(terrain_vertices)-1 DO
-  LOCAL terrain_point_a = terrain_vertices[N], terrain_point_b = terrain_vertices[N+1];
-  FOR L FROM 1 TO SIZE(lander_vertices) DO
-   LOCAL lander_point_a = lander_vertices[L], lander_point_b = lander_vertices[1];
-   IF L < SIZE(lander_vertices) THEN
-    lander_point_b := lander_vertices[L+1];
-   END;
-   LOCAL transformed_lander_point_a = ROTATE_VECTOR(lander_point_a, lander_rotation) + lander_position,
-         transformed_lander_point_b = ROTATE_VECTOR(lander_point_b, lander_rotation) + lander_position;
-   IF ARE_LINES_INTERSECTING(transformed_lander_point_a, transformed_lander_point_b, terrain_point_a, terrain_point_b) THEN
-    RETURN 1;
+  LOCAL terrain_point_a = terrain_vertices[N]+{0,100};
+  LOCAL terrain_point_b = terrain_vertices[N+1]+{0,100};
+
+  IF terrain_point_b[1] > lander_position[1] - lander_circumradius and terrain_point_a[1] < lander_position[1] + lander_circumradius THEN
+   FOR L FROM 1 TO SIZE(lander_vertices) DO
+    LOCAL lander_point_a = lander_vertices[L];
+    LOCAL lander_point_b = lander_vertices[1];
+
+    IF L < SIZE(lander_vertices) THEN
+     lander_point_b := lander_vertices[L+1];
+    END;
+
+    LOCAL transformed_lander_point_a = ROTATE_VECTOR(lander_point_a, lander_rotation) + lander_position;
+    LOCAL transformed_lander_point_b = ROTATE_VECTOR(lander_point_b, lander_rotation) + lander_position;
+
+    IF ARE_LINES_INTERSECTING(transformed_lander_point_a, transformed_lander_point_b, terrain_point_a, terrain_point_b) THEN
+     RETURN 1;
+    END;
    END;
   END;
  END;
