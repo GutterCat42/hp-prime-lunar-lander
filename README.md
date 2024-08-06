@@ -28,6 +28,7 @@ The point is, the engine should just be kept bare-bones for now, just enough to 
 - [x] Random terrain generation with a little flat spot in the middle
 - [x] Camera pan and zoom functionality
 - [x] Limited fuel
+- [ ] Proper deltatime for rotation and things
 - [ ] The engine, and cleaning of the code
 - [x] Collisions
 - [ ] Optimisation
