@@ -89,26 +89,63 @@ BEGIN
  RETURN terrain;
 END;
 
-EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour, screen_width)
+EXPORT GET_SEGMENTS_ON_SCREEN(vertices, pan, zoom, screen_width)
 BEGIN
+ LOCAL onscreen_vertices = {};
  FOR L FROM 1 TO SIZE(vertices)-1 DO
-  LOCAL point_1 = vertices[L], point_2 := vertices[L+1];
-  // Maybe TODO (?): add optimisation for y?
+  LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
   IF point_2[1]+pan[1] > 0 THEN
    IF point_1[1]+pan[1] < screen_width/zoom THEN
-    LOCAL point_1_scaled = VECTOR_SCALE(point_1+pan, zoom),
-          point_2_scaled = VECTOR_SCALE(point_2+pan, zoom);
-    LINE_P(point_1_scaled[1], point_1_scaled[2], point_2_scaled[1], point_2_scaled[2], colour);
+    onscreen_vertices := CONCAT(onscreen_vertices, {point_1});
+    onscreen_vertices := CONCAT(onscreen_vertices, {point_2}); 
    ELSE
-    RETURN;
+    RETURN onscreen_vertices;
    END;
   END;
+ END; 
+END;
+
+
+EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour)
+BEGIN
+ FOR L FROM 1 TO SIZE(vertices)-1 DO
+ LOCAL point_1 = vertices[L], point_2 = vertices[L+1];
+ LOCAL point_1_transformed = VECTOR_SCALE(point_1+pan, zoom),
+       point_2_transformed = VECTOR_SCALE(point_2+pan, zoom);
+ LINE_P(point_1_transformed[1], point_1_transformed[2], point_2_transformed[1], point_2_transformed[2], colour);
  END;
 END;
 
-EXPORT IS_INTERSECTING(line_a_start, line_a_end, line_b_start, line_b_end)
+EXPORT GET_POINT_SIDE(line_start, line_end, point)
 BEGIN
- RETURN ((line_b_end[1]-line_b_start[1])*(line_a_start[2]-line_b_end[2]) - (line_b_end[2]-line_b_start[2])*(line_a_start[1]-line_b_end[1]))
-        - ((line_b_end[1]-line_b_start[1])*(line_a_end[2]-line_b_end[2]) - (line_b_end[2]-line_b_start[2])*(line_a_end[1]-line_b_end[1]))
-        < 0;
+ RETURN (line_end[1] - line_start[1]) * (point[2] - line_start[2]) - (line_end[2] - line_start[2]) * (point[1] - line_start[1]) > 0;
+END;
+
+EXPORT ARE_POINTS_ON_SAME_SIDE(line_start, line_end, point_a, point_b)
+BEGIN
+ RETURN GET_POINT_SIDE(line_start, line_end, point_a) == GET_POINT_SIDE(line_start, line_end, point_b);
+END;
+
+EXPORT ARE_LINES_INTERSECTING(line_a_start, line_a_end, line_b_start, line_b_end)
+BEGIN
+ RETURN ARE_POINTS_ON_SAME_SIDE(line_a_start, line_a_end, line_b_start, line_b_end) == 0 AND ARE_POINTS_ON_SAME_SIDE(line_b_start, line_b_end, line_a_start, line_a_end) == 0;
+END;
+
+EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, terrain_vertices)
+BEGIN
+ FOR N FROM 1 TO SIZE(terrain_vertices)-1 DO
+  LOCAL terrain_point_a = terrain_vertices[N]+{0,100}, terrain_point_b = terrain_vertices[N+1]+{0,100};
+  FOR L FROM 1 TO SIZE(lander_vertices) DO
+   LOCAL lander_point_a = lander_vertices[L], lander_point_b = lander_vertices[1];
+   IF L < SIZE(lander_vertices) THEN
+    lander_point_b := lander_vertices[L+1];
+   END;
+   LOCAL transformed_lander_point_a = ROTATE_VECTOR(lander_point_a, lander_rotation) + lander_position,
+         transformed_lander_point_b = ROTATE_VECTOR(lander_point_b, lander_rotation) + lander_position;
+   IF ARE_LINES_INTERSECTING(transformed_lander_point_a, transformed_lander_point_b, terrain_point_a, terrain_point_b) THEN
+    RETURN 1;
+   END;
+  END;
+ END;
+ RETURN 0;
 END;

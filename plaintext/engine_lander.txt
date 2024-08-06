@@ -16,22 +16,22 @@ BEGIN
  LOCAL thrust = 15;
  LOCAL torque = 10;
  LOCAL lander_size = {20, 8, 5};
- LOCAL fuel = 100, depletion_rate = 20;
+ LOCAL fuel = 100, depletion_rate = 10;
  LOCAL zoom = 1, pan = {0, 0}, pan_rate = 0.2;
  LOCAL lander_vertices = {{-8, 0}, {0, -20}, {8, 0}}, exhaust_vertices = {{-8, 0}, {0, 6}, {8, 0}};
  LOCAL running = true;
- LOCAL terrain_n_vertices = 100, terrain_x_var = 30, terrain_y_var = 30, flat_length = 30;
- LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_x_var, terrain_y_var, flat_length);
+ LOCAL terrain_n_vertices = 50, terrain_x_var = 30, terrain_y_var = 30, flat_length = 30;
+ LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_x_var, terrain_y_var, flat_length), terrain_on_screen;
  LOCAL frame_ticks, prev_ticks = TICKS()-1, fps, dt;
 
  WHILE running DO
   frame_ticks := TICKS() - prev_ticks;
   prev_ticks := TICKS();
   fps := 1000 / frame_ticks;
-  dt := 1000/FPS_CAP-frame_ticks;
-  IF dt > 0 THEN
-   WAIT(dt/1000);
-  END;
+  IF fps > FPS_CAP THEN
+   dt := 1000/FPS_CAP-frame_ticks;
+   WAIT(dt/1000); 
+  END;  
 
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
    lander_speed := VECTOR_SUM(lander_speed, ROTATE_VECTOR({0, -thrust / fps}, lander_angle));
@@ -58,13 +58,18 @@ BEGIN
   RECT(BACKGROUND_COLOUR);
   TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
   TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH-40, 0, 2, FOREGROUND_COLOUR);
-
+  
   DRAW_POLYGON(lander_vertices, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
    DRAW_POLYGON(exhaust_vertices, VECTOR_SUM(lander_pos, pan), lander_angle, zoom, FOREGROUND_COLOUR);
   END;
-
-  DRAW_TERRAIN(terrain, VECTOR_SUM({0, 100}, pan), zoom, FOREGROUND_COLOUR, SCREEN_WIDTH);
+  
+  terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
+  DRAW_TERRAIN(terrain_on_screen, VECTOR_SUM({0, 100}, pan), zoom, FOREGROUND_COLOUR);
+  IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, terrain_on_screen) == 1 THEN
+   WAIT(1);
+   running := false;
+  END;
  END;
  KILL;
 END;
