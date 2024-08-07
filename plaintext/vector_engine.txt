@@ -98,6 +98,8 @@ BEGIN
  END;
 END;
 
+//Collision detection based on https://stackoverflow.com/a/385873 and https://stackoverflow.com/a/3461533
+
 EXPORT GET_POINT_SIDE(line_start, line_end, point)
 BEGIN
  RETURN (line_end[1] - line_start[1]) * (point[2] - line_start[2]) - (line_end[2] - line_start[2]) * (point[1] - line_start[1]) > 0;
