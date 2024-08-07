@@ -1,4 +1,4 @@
-// lunar lander game but ported to use the vector engine
+//Lunar lander game for HP Prime
 CONST KEY_UP = 2;
 CONST KEY_DOWN = 12;
 CONST KEY_LEFT = 7;
@@ -9,7 +9,7 @@ CONST SCREEN_HEIGHT = 240;
 CONST FOREGROUND_COLOUR = RGB(0, 255, 0);
 CONST BACKGROUND_COLOUR = RGB(0, 0, 0);
 CONST FPS_CAP = 30;
-const RECIPROCAL_FPS_CAP = 1 / FPS_CAP;
+CONST RECIPROCAL_FPS_CAP = 1 / FPS_CAP;
 
 EXPORT ENGINE_LANDER()
 BEGIN
@@ -50,8 +50,10 @@ BEGIN
  LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length);
  LOCAL terrain_on_screen;
  LOCAL milliseconds_per_frame = 1000 / FPS_CAP;
- LOCAL frame_ticks, prev_ticks = TICKS()-1;
- LOCAL fps, reciprocal_fps;
+ LOCAL frame_ticks;
+ LOCAL prev_ticks = TICKS()-1;
+ LOCAL fps;	
+ LOCAL reciprocal_fps;
  LOCAL dt;
 
  WHILE running DO
@@ -79,21 +81,22 @@ BEGIN
    running := false;
   END;
   
-  pan := pan + (({SCREEN_WIDTH*0.5/zoom, SCREEN_HEIGHT*0.3333/zoom} - lander_pos) - pan) * pan_rate;
+  pan := pan + (({SCREEN_WIDTH * 0.5 / zoom, SCREEN_HEIGHT / 3 / zoom} - lander_pos) - pan) * pan_rate;
   
-  lander_spin_rate := lander_spin_rate * spin_damp_rate;
+  // https://stackoverflow.com/a/14014343
+  lander_spin_rate := lander_spin_rate * spin_damp_rate^reciprocal_fps;
   lander_angle := lander_angle + lander_spin_rate * reciprocal_fps;
-  lander_speed[2] := lander_speed[2] + gravity *reciprocal_fps;
-  lander_speed := lander_speed - lander_speed * air_damp * reciprocal_fps;
+  lander_speed[2] := lander_speed[2] + gravity * reciprocal_fps;
+  lander_speed := lander_speed - lander_speed * air_damp^reciprocal_fps * reciprocal_fps;
   lander_pos := lander_pos + lander_speed;
   
   RECT(BACKGROUND_COLOUR);
   TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH-40, 0, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
   
-  DRAW_POLYGON(lander_vertices, lander_pos+pan, lander_angle, zoom, FOREGROUND_COLOUR);
+  DRAW_POLYGON(lander_vertices, lander_pos + pan, lander_angle, zoom, FOREGROUND_COLOUR);
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
-   DRAW_POLYGON({exhaust_vertices[1], exhaust_vertices[2]+{RANDINT(-1, 1), RANDINT(0, 4)}, exhaust_vertices[3]}, lander_pos+pan, lander_angle, zoom, FOREGROUND_COLOUR);
+   DRAW_POLYGON({exhaust_vertices[1], exhaust_vertices[2] + {RANDINT(-1, 1), RANDINT(0, 4)}, exhaust_vertices[3]}, lander_pos + pan, lander_angle, zoom, FOREGROUND_COLOUR);
   END;
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
