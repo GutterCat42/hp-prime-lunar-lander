@@ -1,8 +1,15 @@
 // lunar lander game but ported to use the vector engine
-CONST KEY_UP = 2, KEY_DOWN = 12, KEY_LEFT = 7, KEY_RIGHT = 8, KEY_ESC = 4;
-CONST SCREEN_WIDTH = 320, SCREEN_HEIGHT = 240;
-CONST FOREGROUND_COLOUR = RGB(0, 255, 0), BACKGROUND_COLOUR = RGB(0, 0, 0);
+CONST KEY_UP = 2;
+CONST KEY_DOWN = 12;
+CONST KEY_LEFT = 7;
+CONST KEY_RIGHT = 8;
+CONST KEY_ESC = 4;
+CONST SCREEN_WIDTH = 320;
+CONST SCREEN_HEIGHT = 240;
+CONST FOREGROUND_COLOUR = RGB(0, 255, 0);
+CONST BACKGROUND_COLOUR = RGB(0, 0, 0);
 CONST FPS_CAP = 30;
+const RECIPROCAL_FPS_CAP = 1 / FPS_CAP;
 
 EXPORT ENGINE_LANDER()
 BEGIN
@@ -15,27 +22,52 @@ BEGIN
  LOCAL air_damp = 0.98;
  LOCAL thrust = 15;
  LOCAL torque = 10;
- LOCAL lander_size = {20, 8, 5};
- LOCAL fuel = 100, depletion_rate = 10;
- LOCAL zoom = 1, pan = {0, 0}, pan_rate = 0.2;
- LOCAL lander_vertices = {{-8, 0}, {0, -20}, {8, 0}}, exhaust_vertices = {{-8, 0}, {0, 6}, {8, 0}};
+ LOCAL fuel = 100;
+ LOCAL depletion_rate = 10;
+ LOCAL zoom = 1;
+ LOCAL pan = {0, 0};
+ LOCAL pan_rate = 0.2;
+ LOCAL lander_vertices = {{-8, 0}, {0, -20}, {8, 0}};
+ LOCAL exhaust_vertices = {{-8, 0}, {0, 6}, {8, 0}};
+ LOCAL lander_side_lengths = {
+   SQRT(ABS(lander_vertices[1, 1] - lander_vertices[2, 1])^2 + ABS(lander_vertices[1, 2] - lander_vertices[2, 2])^2),
+   SQRT(ABS(lander_vertices[2, 1] - lander_vertices[3, 1])^2 + ABS(lander_vertices[2, 2] - lander_vertices[3, 2])^2),
+   SQRT(ABS(lander_vertices[3, 1] - lander_vertices[1, 1])^2 + ABS(lander_vertices[3, 2] - lander_vertices[1, 2])^2)
+ };
+ // https://study.com/academy/lesson/circumradius-definition-formula.html
+ LOCAL lander_circumradius = (lander_side_lengths[1] * lander_side_lengths[2] * lander_side_lengths[3]) / (
+  SQRT(
+    (lander_side_lengths[1] + lander_side_lengths[2] + lander_side_lengths[3]) *
+    (lander_side_lengths[2] + lander_side_lengths[3] - lander_side_lengths[1]) *
+    (lander_side_lengths[3] + lander_side_lengths[1] - lander_side_lengths[2]) *
+    (lander_side_lengths[1] + lander_side_lengths[2] - lander_side_lengths[3])
+  )
+ );
  LOCAL running = true;
- LOCAL terrain_n_vertices = 50, terrain_x_var = 30, terrain_y_var = 30, flat_length = 30;
- LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_x_var, terrain_y_var, flat_length), terrain_on_screen;
- LOCAL frame_ticks, prev_ticks = TICKS()-1, fps, dt;
+ LOCAL terrain_n_vertices = 50;
+ LOCAL terrain_var = {30, 30};
+ LOCAL flat_length = 30;
+ LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length);
+ LOCAL terrain_on_screen;
+ LOCAL milliseconds_per_frame = 1000 / FPS_CAP;
+ LOCAL frame_ticks, prev_ticks = TICKS()-1;
+ LOCAL fps;
+ LOCAL dt;
 
  WHILE running DO
   frame_ticks := TICKS() - prev_ticks;
   prev_ticks := TICKS();
   fps := 1000 / frame_ticks;
   IF fps > FPS_CAP THEN
-   dt := 1000/FPS_CAP-frame_ticks;
-   WAIT(dt/1000); 
+   dt := 1000 * RECIPROCAL_FPS_CAP - frame_ticks;
+   WAIT(dt * 0.001);
   END;
 
+  LOCAL reciprocal_fps = 1 / fps;
+
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
-   lander_speed := lander_speed + ROTATE_VECTOR({0, -thrust / fps}, lander_angle);
-   fuel := fuel - depletion_rate / fps;
+   lander_speed := lander_speed + ROTATE_VECTOR({0, -thrust * reciprocal_fps}, lander_angle);
+   fuel := fuel - depletion_rate * reciprocal_fps;
   END;
   IF ISKEYDOWN(KEY_LEFT) THEN
    lander_spin_rate := lander_spin_rate - torque;
@@ -47,12 +79,12 @@ BEGIN
    running := false;
   END;
   
-  pan := pan + (({SCREEN_WIDTH/2/zoom, SCREEN_HEIGHT/3/zoom} - lander_pos) - pan) * pan_rate;
+  pan := pan + (({SCREEN_WIDTH*0.5/zoom, SCREEN_HEIGHT*0.3333/zoom} - lander_pos) - pan) * pan_rate;
   
   lander_spin_rate := lander_spin_rate * spin_damp_rate;
-  lander_angle := lander_angle + lander_spin_rate / fps;
-  lander_speed[2] := lander_speed[2] + gravity / fps;
-  lander_speed := lander_speed - lander_speed*air_damp/fps;
+  lander_angle := lander_angle + lander_spin_rate * reciprocal_fps;
+  lander_speed[2] := lander_speed[2] + gravity *reciprocal_fps;
+  lander_speed := lander_speed - lander_speed * air_damp * reciprocal_fps;
   lander_pos := lander_pos + lander_speed;
   
   RECT(BACKGROUND_COLOUR);
@@ -65,8 +97,8 @@ BEGIN
   END;
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
-  DRAW_TERRAIN(terrain_on_screen, pan, zoom, FOREGROUND_COLOUR);
-  IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, terrain_on_screen) == 1 THEN
+  DRAW_TERRAIN(terrain_on_screen, {0, 100}+pan, zoom, FOREGROUND_COLOUR);
+  IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, lander_circumradius, terrain_on_screen) == 1 THEN
    WAIT(1);
    running := false;
   END;
