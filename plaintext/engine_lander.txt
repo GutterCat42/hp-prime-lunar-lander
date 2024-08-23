@@ -17,11 +17,11 @@ BEGIN
  LOCAL lander_speed = {0, 0};
  LOCAL lander_angle = 0;
  LOCAL lander_spin_rate = 0;
- LOCAL gravity = 5;
+ LOCAL gravity = 2;
  LOCAL spin_damp_rate = 0.97;
- LOCAL air_damp = 0.98;
- LOCAL thrust = 15;
- LOCAL torque = 10;
+ LOCAL air_damp = 0.96;
+ LOCAL thrust = 5;
+ LOCAL torque = 5;
  LOCAL fuel = 100;
  LOCAL depletion_rate = 10;
  LOCAL zoom = 1;
@@ -29,6 +29,7 @@ BEGIN
  LOCAL pan_rate = 0.2;
  LOCAL lander_vertices = {{-8, 0}, {0, -20}, {8, 0}};
  LOCAL exhaust_vertices = {{-8, 0}, {0, 6}, {8, 0}};
+ LOCAL transformed_lander_vertices;
  LOCAL lander_side_lengths = {
    SQRT(ABS(lander_vertices[1, 1] - lander_vertices[2, 1])^2 + ABS(lander_vertices[1, 2] - lander_vertices[2, 2])^2),
    SQRT(ABS(lander_vertices[2, 1] - lander_vertices[3, 1])^2 + ABS(lander_vertices[2, 2] - lander_vertices[3, 2])^2),
@@ -47,17 +48,17 @@ BEGIN
  LOCAL terrain_n_vertices = 50;
  LOCAL terrain_var = {30, 30};
  LOCAL flat_length = 30;
- LOCAL terrain = GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length);
+ LOCAL terrain = TRANSFORM_POLYGON(GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length), {0, 100}, 0, 1);
  LOCAL terrain_on_screen;
  LOCAL milliseconds_per_frame = 1000 / FPS_CAP;
  LOCAL frame_ticks;
  LOCAL prev_ticks = TICKS()-1;
- LOCAL fps;	
+ LOCAL fps;  
  LOCAL reciprocal_fps;
  LOCAL dt;
 
  WHILE running DO
-  frame_ticks := TICKS() - prev_ticks;
+  frame_ticks := TICKS() - prev_ticks + 1;
   prev_ticks := TICKS();
   fps := 1000 / frame_ticks;
   IF fps > FPS_CAP THEN
@@ -81,8 +82,6 @@ BEGIN
    running := false;
   END;
   
-  pan := pan + (({SCREEN_WIDTH * 0.5 / zoom, SCREEN_HEIGHT / 3 / zoom} - lander_pos) - pan) * pan_rate;
-  
   // https://stackoverflow.com/a/14014343
   lander_spin_rate := lander_spin_rate * spin_damp_rate^reciprocal_fps;
   lander_angle := lander_angle + lander_spin_rate * reciprocal_fps;
@@ -91,20 +90,32 @@ BEGIN
   lander_pos := lander_pos + lander_speed;
   
   RECT(BACKGROUND_COLOUR);
-  TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
   
-  DRAW_POLYGON(lander_vertices, lander_pos + pan, lander_angle, zoom, FOREGROUND_COLOUR);
+  transformed_lander_vertices := TRANSFORM_POLYGON(lander_vertices, lander_pos, lander_angle, 1);
+  DRAW_POLYGON(transformed_lander_vertices, pan, 0, zoom, FOREGROUND_COLOUR);
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
    DRAW_POLYGON({exhaust_vertices[1], exhaust_vertices[2] + {RANDINT(-1, 1), RANDINT(0, 4)}, exhaust_vertices[3]}, lander_pos + pan, lander_angle, zoom, FOREGROUND_COLOUR);
   END;
+
+  TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P("SPEED " +STRING(ROUND(MAGNITUDE(lander_speed), 0)), 0, 20, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P("TERRAIN "+STRING(ROUND(GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[1,1])-GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[2,1]), 0)), 0, 30, 2, FOREGROUND_COLOUR);
+  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
-  DRAW_TERRAIN(terrain_on_screen, {0, 100}+pan, zoom, FOREGROUND_COLOUR);
+  DRAW_TERRAIN(terrain_on_screen, pan, zoom, FOREGROUND_COLOUR);
   IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, lander_circumradius, terrain_on_screen) THEN
-   WAIT(1);
+   IF MAGNITUDE(lander_speed) < 2 AND ABS(lander_angle) < 5 AND ABS(GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[1,1])-GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[2,1])) < 2 THEN
+   ELSE
+    DRAW_POLYGON(GENERATE_EXPLOSION(6, 50, 70), lander_pos+pan, 0, zoom, FOREGROUND_COLOUR);
+   END;
    running := false;
   END;
+
+  zoom := CLAMP(zoom + (-0.02*(GET_TERRAIN_Y(terrain_on_screen, lander_pos[1])-lander_pos[2])+2 - zoom) * pan_rate/2, 0.8, 2);
+  pan := pan + (({SCREEN_WIDTH * 0.5 / zoom, SCREEN_HEIGHT / 3 / zoom} - lander_pos) - pan) * pan_rate;
  END;
+ WAIT(1);
  KILL;
 END;

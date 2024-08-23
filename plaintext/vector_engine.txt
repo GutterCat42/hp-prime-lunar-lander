@@ -1,3 +1,8 @@
+EXPORT CLAMP(value, min_value, max_value)
+BEGIN
+ RETURN MAX(min_value, MIN(value, max_value));
+END;
+
 EXPORT MAGNITUDE(vector)
 BEGIN
  RETURN SQRT(vector[1]^2+vector[2]^2);
@@ -23,26 +28,26 @@ BEGIN
  RETURN {magnitude*COS(original_angle+angle), magnitude*SIN(original_angle+angle)};
 END;
 
-EXPORT POLYGON_OFFSET(vertices, offset)
+EXPORT TRANSFORM_POLYGON(vertices, position, angle, shape_scale)
 BEGIN
- LOCAL adjusted_vertices = {};
- FOR P FROM 1 TO SIZE(vertices) DO
-  adjusted_vertices := CONCAT(adjusted_vertices, {vertices[P] + offset});
+ LOCAL transformed_vertices = {};
+ FOR V FROM 1 TO SIZE(vertices) DO
+  transformed_vertices := CONCAT(transformed_vertices, {(ROTATE_VECTOR(vertices[V], angle)+position)*shape_scale});
  END;
- RETURN adjusted_vertices;
+ RETURN transformed_vertices;
 END;
 
 EXPORT DRAW_POLYGON(vertices, position, angle, shape_scale, colour)
 BEGIN
+ LOCAL point_1, point_2, screen_point_1, screen_point_2;
  FOR L FROM 1 TO SIZE(vertices) DO
-  LOCAL point_1 = vertices[L], point_2 = vertices[1];
+  point_1 := vertices[L];
+  point_2 := vertices[1];
   IF L < SIZE(vertices) THEN
    point_2 := vertices[L+1];
   END;
-  LOCAL point_1_rotated = ROTATE_VECTOR(point_1, angle);
-  LOCAL point_2_rotated = ROTATE_VECTOR(point_2, angle);
-  LOCAL screen_point_1 = (point_1_rotated+position)*shape_scale;
-  LOCAL screen_point_2 = (point_2_rotated+position)*shape_scale;
+  screen_point_1 := (ROTATE_VECTOR(point_1, angle)+position)*shape_scale;
+  screen_point_2 := (ROTATE_VECTOR(point_2, angle)+position)*shape_scale;
   LINE_P(screen_point_1[1], screen_point_1[2], screen_point_2[1], screen_point_2[2], colour);
  END;
 END;
@@ -56,6 +61,19 @@ BEGIN
   RETURN CONCAT(list, {value});
  END;
  RETURN CONCAT(SUB(list, 1, index-1), {value}, SUB(list, index, SIZE(list)));
+END;
+
+EXPORT GENERATE_EXPLOSION(n_vertices, min_radius, max_radius)
+BEGIN
+ LOCAL vertices = {}, new_vertex;
+ LOCAL mid_radius = (max_radius-min_radius)/2;
+ FOR V FROM 1 TO n_vertices DO
+  FOR N FROM -1 TO 1 STEP 2 DO
+   new_vertex := ROTATE_VECTOR({0, mid_radius+N*RANDINT(0, mid_radius)}, (360/n_vertices)*V+(360/n_vertices/2)*N);
+   vertices := CONCAT(vertices, {new_vertex});
+  END;
+ END;
+ RETURN vertices;
 END;
 
 EXPORT GENERATE_TERRAIN(n_vertices, x_var, y_var, flat_length)
@@ -91,9 +109,10 @@ END;
 
 EXPORT DRAW_TERRAIN(vertices, pan, zoom, colour)
 BEGIN
+ LOCAL point_1_transformed, point_2_transformed;
  FOR L FROM 1 TO SIZE(vertices)-1 DO
-  LOCAL point_1_transformed = (vertices[L] + pan) * zoom;
-  LOCAL point_2_transformed = (vertices[L + 1] + pan) * zoom;
+  point_1_transformed := (vertices[L] + pan) * zoom;
+  point_2_transformed := (vertices[L + 1] + pan) * zoom;
   LINE_P(point_1_transformed[1], point_1_transformed[2], point_2_transformed[1], point_2_transformed[2], colour);
  END;
 END;
@@ -118,8 +137,8 @@ END;
 EXPORT CHECK_FOR_COLLISIONS(lander_vertices, lander_rotation, lander_position, lander_circumradius, terrain_vertices)
 BEGIN
  FOR N FROM 1 TO SIZE(terrain_vertices)-1 DO
-  LOCAL terrain_point_a = terrain_vertices[N]+{0,100};
-  LOCAL terrain_point_b = terrain_vertices[N+1]+{0,100};
+  LOCAL terrain_point_a = terrain_vertices[N];
+  LOCAL terrain_point_b = terrain_vertices[N+1];
 
   IF terrain_point_b[1] > lander_position[1] - lander_circumradius and terrain_point_a[1] < lander_position[1] + lander_circumradius THEN
    FOR L FROM 1 TO SIZE(lander_vertices) DO
@@ -140,4 +159,16 @@ BEGIN
   END;
  END;
  RETURN 0;
+END;
+
+EXPORT GET_TERRAIN_Y(terrain, x_value)
+BEGIN
+ FOR L FROM 1 TO SIZE(terrain)-1 DO
+  IF terrain[L,1] > x_value THEN
+   LOCAL segment = {terrain[L-1], terrain[L]};
+   LOCAL slope = (segment[2,2] - segment[1,2])/(segment[2,1] - segment[1,1]);
+   LOCAL y_int = segment[1,2] - slope * segment[1,1];
+   RETURN slope * x_value + y_int;
+  END;
+ END;
 END;
