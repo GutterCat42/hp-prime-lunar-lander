@@ -7,6 +7,7 @@ CONST KEY_ESC = 4;
 CONST SCREEN_WIDTH = 320;
 CONST SCREEN_HEIGHT = 240;
 CONST FOREGROUND_COLOUR = RGB(0, 255, 0);
+CONST ALERT_COLOUR = RGB(255, 0, 0);
 CONST BACKGROUND_COLOUR = RGB(0, 0, 0);
 CONST FPS_CAP = 30;
 CONST RECIPROCAL_FPS_CAP = 1 / FPS_CAP;
@@ -23,7 +24,7 @@ BEGIN
  LOCAL thrust = 5;
  LOCAL torque = 5;
  LOCAL fuel = 100;
- LOCAL depletion_rate = 10;
+ LOCAL depletion_rate = 5;
  LOCAL zoom = 1;
  LOCAL pan = {0, 0};
  LOCAL pan_rate = 0.2;
@@ -50,12 +51,16 @@ BEGIN
  LOCAL flat_length = 30;
  LOCAL terrain = TRANSFORM_POLYGON(GENERATE_TERRAIN(terrain_n_vertices-1, terrain_var[1], terrain_var[2], flat_length), {0, 100}, 0, 1);
  LOCAL terrain_on_screen;
+ LOCAL terrain_scan;
  LOCAL milliseconds_per_frame = 1000 / FPS_CAP;
  LOCAL frame_ticks;
  LOCAL prev_ticks = TICKS()-1;
  LOCAL fps;  
  LOCAL reciprocal_fps;
  LOCAL dt;
+ LOCAL safe_speed = 2;
+ LOCAL safe_angle = 5;
+ LOCAL safe_terrain = 2;
 
  WHILE running DO
   frame_ticks := TICKS() - prev_ticks + 1;
@@ -96,19 +101,37 @@ BEGIN
   IF ISKEYDOWN(KEY_UP) and fuel > 0 THEN
    DRAW_POLYGON({exhaust_vertices[1], exhaust_vertices[2] + {RANDINT(-1, 1), RANDINT(0, 4)}, exhaust_vertices[3]}, lander_pos + pan, lander_angle, zoom, FOREGROUND_COLOUR);
   END;
-
-  TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P("SPEED " +STRING(ROUND(MAGNITUDE(lander_speed), 0)), 0, 20, 2, FOREGROUND_COLOUR);
-  TEXTOUT_P("TERRAIN "+STRING(ROUND(GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[1,1])-GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[2,1]), 0)), 0, 30, 2, FOREGROUND_COLOUR);
+  
+  terrain_scan := GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[1,1])-GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[2,1]);
+  
+  IF fuel ≥ 10 THEN
+   TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, FOREGROUND_COLOUR);
+  ELSE
+   TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, ALERT_COLOUR);
+  END;
+  IF ABS(lander_angle) ≤ safe_angle THEN
+   TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, FOREGROUND_COLOUR);
+  ELSE
+   TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, ALERT_COLOUR);
+  END;
+  IF MAGNITUDE(lander_speed) ≤ safe_speed THEN
+   TEXTOUT_P("SPEED " +STRING(ROUND(MAGNITUDE(lander_speed), 0)), 0, 20, 2, FOREGROUND_COLOUR);
+  ELSE
+   TEXTOUT_P("SPEED " +STRING(ROUND(MAGNITUDE(lander_speed), 0)), 0, 20, 2, ALERT_COLOUR);
+  END;
+  IF ABS(terrain_scan) ≤ safe_terrain THEN
+   TEXTOUT_P("TERRAIN "+STRING(ROUND(terrain_scan, 0)), 0, 30, 2, FOREGROUND_COLOUR);
+  ELSE
+   TEXTOUT_P("TERRAIN "+STRING(ROUND(terrain_scan, 0)), 0, 30, 2, ALERT_COLOUR);
+  END;
   TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
   DRAW_TERRAIN(terrain_on_screen, pan, zoom, FOREGROUND_COLOUR);
   IF CHECK_FOR_COLLISIONS(lander_vertices, lander_angle, lander_pos, lander_circumradius, terrain_on_screen) THEN
-   IF MAGNITUDE(lander_speed) < 2 AND ABS(lander_angle) < 5 AND ABS(GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[1,1])-GET_TERRAIN_Y(terrain_on_screen, transformed_lander_vertices[2,1])) < 2 THEN
+   IF MAGNITUDE(lander_speed) ≤ safe_speed AND ABS(lander_angle) ≤ safe_angle AND ABS(terrain_scan) ≤ safe_terrain THEN
    ELSE
-    DRAW_POLYGON(GENERATE_EXPLOSION(6, 50, 70), lander_pos+pan, 0, zoom, FOREGROUND_COLOUR);
+    DRAW_POLYGON(GENERATE_EXPLOSION(6, 250, 300), lander_pos+pan, 0, zoom, ALERT_COLOUR);
    END;
    running := false;
   END;
