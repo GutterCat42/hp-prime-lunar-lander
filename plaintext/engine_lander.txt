@@ -7,7 +7,7 @@ CONST KEY_ESC = 4;
 CONST SCREEN_WIDTH = 320;
 CONST SCREEN_HEIGHT = 240;
 CONST FOREGROUND_COLOUR = RGB(0, 255, 0);
-CONST ALERT_COLOUR = RGB(255, 0, 0);
+CONST ALERT_COLOUR = RGB(255, 42, 0);
 CONST BACKGROUND_COLOUR = RGB(0, 0, 0);
 CONST FPS_CAP = 30;
 CONST RECIPROCAL_FPS_CAP = 1 / FPS_CAP;
@@ -62,6 +62,13 @@ BEGIN
  LOCAL safe_angle = 5;
  LOCAL safe_terrain = 2;
 
+ LOCAL is_deg_mode = CHECK_IF_DEG_MODE;
+
+ IF is_deg_mode == 0 THEN
+  torque := RAD(torque);
+  safe_angle := RAD(safe_angle);
+ END;
+
  WHILE running DO
   frame_ticks := TICKS() - prev_ticks + 1;
   prev_ticks := TICKS();
@@ -109,10 +116,18 @@ BEGIN
   ELSE
    TEXTOUT_P("FUEL " +STRING(ROUND(fuel, 0)), 0, 0, 2, ALERT_COLOUR);
   END;
-  IF ABS(lander_angle) ≤ safe_angle THEN
-   TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, FOREGROUND_COLOUR);
+  IF is_deg_mode THEN
+   IF ABS(lander_angle) ≤ safe_angle THEN
+    TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, FOREGROUND_COLOUR);
+   ELSE
+    TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, ALERT_COLOUR);
+   END;
   ELSE
-   TEXTOUT_P("ANGLE " +STRING(ROUND(lander_angle, 0)), 0, 10, 2, ALERT_COLOUR);
+   IF ABS(lander_angle) ≤ safe_angle THEN
+    TEXTOUT_P("ANGLE " +STRING(ROUND(DEG(lander_angle), 0)), 0, 10, 2, FOREGROUND_COLOUR);
+   ELSE
+    TEXTOUT_P("ANGLE " +STRING(ROUND(DEG(lander_angle), 0)), 0, 10, 2, ALERT_COLOUR);
+   END;
   END;
   IF MAGNITUDE(lander_speed) ≤ safe_speed THEN
    TEXTOUT_P("SPEED " +STRING(ROUND(MAGNITUDE(lander_speed), 0)), 0, 20, 2, FOREGROUND_COLOUR);
@@ -124,7 +139,11 @@ BEGIN
   ELSE
    TEXTOUT_P("TERRAIN "+STRING(ROUND(terrain_scan, 0)), 0, 30, 2, ALERT_COLOUR);
   END;
-  TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
+  IF fps >= FPS_CAP THEN
+   TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, FOREGROUND_COLOUR);
+  ELSE
+   TEXTOUT_P(STRING(ROUND(fps, 0)) + " FPS", SCREEN_WIDTH - 40, 0, 2, ALERT_COLOUR);
+  END;
   
   terrain_on_screen := GET_SEGMENTS_ON_SCREEN(terrain, pan, zoom, SCREEN_WIDTH);
   DRAW_TERRAIN(terrain_on_screen, pan, zoom, FOREGROUND_COLOUR);

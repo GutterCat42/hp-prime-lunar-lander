@@ -1,3 +1,18 @@
+EXPORT CHECK_IF_DEG_MODE()
+BEGIN
+ RETURN COS(60) == 1/2;
+END;
+
+EXPORT RAD(deg)
+BEGIN
+ RETURN deg*PI/180;
+END;
+
+EXPORT DEG(rad)
+BEGIN
+ RETURN rad*180/PI;
+END;
+
 EXPORT CLAMP(value, min_value, max_value)
 BEGIN
  RETURN MAX(min_value, MIN(value, max_value));
@@ -16,7 +31,7 @@ BEGIN
   IF vector[2] > 0 THEN
    RETURN ACOS(vector[1]/MAGNITUDE(vector));
   ELSE
-   RETURN 360-ACOS(vector[1]/MAGNITUDE(vector));
+   RETURN 0-ACOS(vector[1]/MAGNITUDE(vector));
   END;
  END;
 END;
@@ -63,6 +78,7 @@ BEGIN
  RETURN CONCAT(SUB(list, 1, index-1), {value}, SUB(list, index, SIZE(list)));
 END;
 
+// TODO: Fix
 EXPORT GENERATE_EXPLOSION(n_vertices, min_radius, max_radius)
 BEGIN
  LOCAL vertices = {}, new_vertex;
